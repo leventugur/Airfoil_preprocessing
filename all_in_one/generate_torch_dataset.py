@@ -2,12 +2,11 @@ import os
 import pandas as pd
 import numpy as np
 
-from UIUCDataset import UIUCDataset, save_dataset
+from UIUCDataset import UIUCDataset, UIUCDataset_tc, save_dataset
 
 # Get files
 database_folder = "./picked_uiuc/"
 files = os.listdir(database_folder)
-pkl_name = 'uiuc_torch_dataset.pkl'
 
 # Initialize data
 data = []
@@ -30,8 +29,10 @@ for file in files:
 
 # Generate dataset
 uiuc_dataset = UIUCDataset(data, data_x, airfoil_names)
+uiuc_dataset_tc = UIUCDataset_tc(data, data_x, airfoil_names)
 
-# Save dataset
-save_dataset(uiuc_dataset, pkl_name)
+# Save datasets
+save_dataset(uiuc_dataset, 'uiuc_torch_dataset.pkl')
+save_dataset(uiuc_dataset_tc, 'uiuc_tc_torch_dataset.pkl')
 
-print("Dataset is saved: ", pkl_name)
+print("Datasets are saved!")
