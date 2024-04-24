@@ -2,10 +2,25 @@ import os
 import pandas as pd
 import numpy as np
 
-from UIUCDataset import UIUCDataset, UIUCDataset_tc, save_dataset
+from UIUCDataset import *
+
+# ===================================================
+# ==================== INPUTS =======================
+# ===================================================
+# Databse folder
+database_folder = "./picked_uiuc/"
+
+#Outliner limits
+t_lim = 0.3
+c_lim = 0.25
+
+# Outout names
+uiuc_dataset_name = 'uiuc_torch_dataset.pkl'
+uiuc_dataset_tc_name = 'uiuc_tc_torch_dataset.pkl'
+# ==================================================
+
 
 # Get files
-database_folder = "./picked_uiuc/"
 files = os.listdir(database_folder)
 
 # Initialize data
@@ -29,10 +44,15 @@ for file in files:
 
 # Generate dataset
 uiuc_dataset = UIUCDataset(data, data_x, airfoil_names)
-uiuc_dataset_tc = UIUCDataset_tc(data, data_x, airfoil_names)
+
+# Remove outliners
+uiuc_dataset = remove_outliners(uiuc_dataset, t_lim=t_lim, c_lim=c_lim)
+
+# Genrate thickness-camber dataset
+uiuc_dataset_tc = UIUCDatasetTC(uiuc_dataset.data, uiuc_dataset.x_points, uiuc_dataset.names)
 
 # Save datasets
-save_dataset(uiuc_dataset, 'uiuc_torch_dataset.pkl')
-save_dataset(uiuc_dataset_tc, 'uiuc_tc_torch_dataset.pkl')
+save_dataset(uiuc_dataset, uiuc_dataset_name)
+save_dataset(uiuc_dataset_tc, uiuc_dataset_tc_name)
 
 print("Datasets are saved!")

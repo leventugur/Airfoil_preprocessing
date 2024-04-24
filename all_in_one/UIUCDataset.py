@@ -1,6 +1,7 @@
 
 import torch
 import numpy as np
+import copy
 from torch.utils.data import Dataset
 import pickle
 
@@ -23,7 +24,7 @@ class UIUCDataset(Dataset):
     
 
 # UIUC Thickness-Camber Decomposed Airfoil Dataset
-class UIUCDataset_tc(Dataset):
+class UIUCDatasetTC(Dataset):
     def __init__(self, ycoords, x_points, names):
         self.x_points = torch.tensor(x_points)
         self.x_points_half = x_points[:len(x_points//2+1)]
@@ -38,7 +39,7 @@ class UIUCDataset_tc(Dataset):
         # Get the 1D y data at the given index
         airfoil_tc = self.data[idx]
         # Convert the 1D data to PyTorch tensor
-        tc_tensor = torch.tensor(airfoil_tc, dtype=torch.float32)
+        tc_tensor = airfoil_tc.float()
         return tc_tensor
     
 # Save dataset to a file using pickle
@@ -50,6 +51,18 @@ def save_dataset(dataset, filename):
 def load_dataset(filename):
     with open(filename, 'rb') as f:
         dataset = pickle.load(f)
+    return dataset
+
+# Scale dataset
+def scale_dataset(dataset, scaling_factor):
+    dataset = copy.deepcopy(dataset)
+
+    if len(scaling_factor) < 2:
+        dataset.data = dataset.data/scaling_factor
+    else:
+        for i in range(len(scaling_factor)):
+            dataset.data[:,i,:] /= scaling_factor[i]
+
     return dataset
 
 # Get camber lien dist
@@ -91,3 +104,34 @@ def get_tc_superposition(x, t, c):
 
     assert(len(x) == len(y_coords))
     return torch.tensor(y_coords)
+
+# Filter TC dataset by gloabl cmaber and thickness constraints
+def remove_outliners(dataset, t_lim=np.inf, c_lim=np.inf):
+
+    # Decompose thiness and camber
+    data = get_tc_decompose(dataset.x_points, np.array(dataset.data))
+    data = np.array(data)
+
+    # Set flag array
+    flag = [True]*len(data)
+
+    # Iterate over airfoils
+    for i in range(len(data)):
+
+        # Get maximum values
+        max_t = np.max(data[i][0])
+        max_c = np.max(data[i][1])
+
+        # If outliner, flag as zero
+        if max_t>t_lim or max_c>c_lim:
+            flag[i] = False
+
+    # Filter and generate a new dataset
+    new_dataset = UIUCDataset(np.array(dataset.data)[flag], dataset.x_points, np.array(dataset.names)[flag])
+
+    # Check the size of the new dataset
+    assert len(new_dataset) == np.sum(flag)
+
+    # Return new dataset
+    return new_dataset
+
